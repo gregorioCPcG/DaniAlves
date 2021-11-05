@@ -1,0 +1,111 @@
+---
+title: "Dani Alves"
+output: html_document
+---
+
+## R Markdown e Pacotes
+
+Este é um documento R Markdown. Markdown é uma sintaxe de formatação simples para a criação de documentos HTML, PDF e MS Word. Para obter mais detalhes sobre o uso de R Markdown, consulte <http://rmarkdown.rstudio.com>.
+
+O software R para proceder as análises aqui desejadas demanda o uso de três pacotes:
+
+```{r, , }
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+options(scipen = 1000) # função útil
+```
+
+## Criando Dados
+
+Para dados do numero de jogos e gols de Alves utilizei o site transfermarket, para assistências no Bahia utilizei uma reportagem da Gazeta esportiva
+
+```{r}
+time <- c("Bahia","Sevilla", "Barcelona", "Juventus", "PSG", "SãoPaulo", "Brasil") #os clubes e a seleção
+jogos <- c(37, 250, 391,33, 73,95, 119) # na sequencia por time
+gols <- c(5,16,21,6,8,10,8) # na sequencia por time
+media_gols <- gols/jogos
+data <-data.frame (jogos, gols, media_gols, time)
+data
+```
+
+O que foi gerado está meio estranho que tal gerar uma bonita tabela:
+
+```{r}
+tabela1 <- data %>% 
+  dplyr::select(time, jogos, gols, media_gols) %>% 
+  arrange(desc(media_gols))
+tabela1 %>%
+  kbl(caption = "Carreira de Daniel Alves(gols)") %>%
+  kable_classic(full_width = F, html_font = "Garamond")
+
+```
+
+
+Dani Alves se notabilizou mais pelas assistências do que pelos gols, que tal incluir esse dado na análise?
+```{r}
+# acrescentar as assistências
+assistencias <- c(3, 29, 101, 7, 18, 14, 21)
+media_assistencias <- assistencias/jogos
+
+data <-data.frame (jogos, gols, media_gols, time, assistencias, media_assistencias)
+
+tabela2 <- data %>% 
+  dplyr::select(time, jogos, gols, media_assistencias) %>% 
+  arrange(desc(media_assistencias))
+tabela2 %>%
+  kbl(caption = "Carreira de Daniel Alves (assistências)") %>%
+  kable_classic(full_width = F, html_font = "Garamond")
+```
+
+Em relação às assistências o Barcelona parece ter sido o período mais fértil da carreira do atleta.
+
+A fim de compreender se há alguma relação entre assistencia e gols, utilizaremos a correlação de Pearson já utilizada nesse site em outras oportunidades 
+
+```{r}
+cor(media_assistencias, media_gols)
+```
+
+A correlação oscila entre 
+-1 relação negativa forte
+0 sem relação
+1 relação positiva forte
+o valor de -0.08 indica frágil relação. Ou seja, em alguns clubes Alves foi mais artilheiro, já em outros mais garçom.
+Que tal unificar as duas medidas criando um indíce de participação de gols?
+
+```{r}
+Particip <- gols + assistencias 
+media_particip <- Particip/jogos
+
+data <-data.frame (jogos, gols, media_gols, time, assistencias, media_assistencias, Particip, media_particip)
+
+b7 <- data %>% 
+  dplyr::select(time, jogos, gols, media_particip) %>% 
+  arrange(desc(media_particip))
+b7 %>%
+  kbl(caption = "Carreira de Daniel Alves") %>%
+  kable_classic(full_width = F, html_font = "Garamond")
+```
+
+A breve passagem do lateral pela Juve parece ter sido aquela em que ele mais se destacou em termos de participação nos gols, uma ótima média de 0.39 por jogo. Isso é muito significativo, levando em consideração que o atleta é um defensor. 
+
+Por fim duas análises são ainda cabíveis
+A primeira é a criaçao de um gráfico que observa a correlação entre jogos e essa média de participações, destacando cada clube pelo qual Daniel passou em sua vitoriosa carreira:
+
+```{r}
+f <- ggplot(data, aes(jogos, media_particip))
+f + geom_text(aes(label = time)) +  ylab("Média Gols + Assistências") + scale_x_continuous(limits = c(0, 450)) + scale_y_continuous(limits = c(0.13, 0.45))
+```
+
+
+
+
+A segunda é um cruzamento entre gols e assistencia levando em consideração o time:
+
+```{r}
+j <- ggplot(data, aes(media_gols, media_assistencias))
+j + geom_text(aes(label = time)) + scale_x_continuous(limits = c(0, 0.32)) + scale_y_continuous(limits = c(0, 0.32)) +
+  ylab("MédiaAssistências") + xlab("Média Gols")
+```
+
+
